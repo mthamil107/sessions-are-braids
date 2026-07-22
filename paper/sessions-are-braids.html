@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sessions Are Braids</title>
+<style>
+  @page { size: A4; margin: 22mm 24mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 10.5pt; line-height: 1.42; color: #111;
+    max-width: 165mm; margin: 0 auto;
+  }
+  h1 { font-size: 17pt; text-align: center; margin: 0 0 10pt; line-height: 1.25; font-weight: normal; }
+  .authors { text-align: center; font-size: 11pt; margin-bottom: 2pt; }
+  .affil { text-align: center; font-size: 9.5pt; color: #444; margin-bottom: 14pt; }
+  .abstract { margin: 0 10mm 14pt; font-size: 9.8pt; text-align: justify; }
+  .abstract b.lead { font-variant: small-caps; }
+  h2 { font-size: 12pt; margin: 14pt 0 5pt; }
+  h3 { font-size: 10.5pt; margin: 10pt 0 4pt; }
+  p { text-align: justify; margin-bottom: 6pt; }
+  table { border-collapse: collapse; margin: 8pt auto; font-size: 9.5pt; }
+  th, td { padding: 2.5pt 8pt; text-align: left; }
+  th { border-top: 1.2pt solid #111; border-bottom: 0.6pt solid #111; font-weight: bold; }
+  tbody tr:last-child td { border-bottom: 1.2pt solid #111; }
+  td.n, th.n { text-align: right; }
+  .caption { font-size: 9pt; color: #333; text-align: justify; margin: 4pt 6mm 10pt; }
+  .caption b { font-weight: bold; }
+  code, .tt { font-family: Consolas, "Courier New", monospace; font-size: 9pt; }
+  figure { margin: 10pt 0 4pt; text-align: center; page-break-inside: avoid; }
+  ol.refs { margin: 6pt 0 0 14pt; font-size: 9.3pt; }
+  ol.refs li { margin-bottom: 3.5pt; text-align: justify; }
+  .footnote { font-size: 8.8pt; color: #333; border-top: 0.5pt solid #999; margin-top: 10pt; padding-top: 3pt; }
+  ul { margin: 0 0 6pt 16pt; }
+  li { margin-bottom: 2.5pt; text-align: justify; }
+</style>
+</head>
+<body>
+
+<h1>Sessions Are Braids: Measuring Latent Thread Structure<br>in Real Coding-Agent Sessions</h1>
+<div class="authors">Thamilvendhan Munirathinam</div>
+<div class="affil">mthamil107@gmail.com &nbsp;·&nbsp; July 2026 &nbsp;·&nbsp; Measurement note and proposal</div>
+
+<div class="abstract">
+<b class="lead">Abstract.</b>
+Coding agents such as Claude Code accumulate conversation history in a single linear,
+append-only context window. We measure, on a corpus of 67 real multi-turn Claude Code
+sessions from one professional user (5,182 user prompts, ≈20&nbsp;million estimated stored-context
+tokens), what that window is actually made of — first by turn <i>intent</i>, then by latent
+<i>topic structure</i>. Two findings. <b>(1)&nbsp;Negative:</b> pure-comprehension turns
+(&ldquo;explain this&rdquo;, &ldquo;why?&rdquo;) — the most safely evictable content, since the model can
+regenerate any explanation from what remains — account for only <b>2.3%</b> of stored tokens
+(median session 1.6%; heuristic upper bound). Intent-based eviction of explanation turns is
+not worth building for professional sessions. <b>(2)&nbsp;Positive:</b> sessions are braids.
+<b>93%</b> of sessions interleave topically distinct threads (6–11 threads per session on
+average, depending on segmentation strictness), returning to earlier threads after working on
+others; at each prompt, <b>23–44%</b> of the accumulated context it drags along belongs to
+<i>other</i> threads. The interleaving rate is invariant to segmentation threshold. This
+quantifies, in real usage data, the &ldquo;logical context poisoning&rdquo; that the Conversation Tree
+Architecture recently formalized, and it targets exactly the two components that work leaves
+open: <i>automatic thread placement</i> and <i>condensation on merge-back</i>. We propose an
+intent router implementing both, outline a replay-ablation evaluation, and release the
+measurement scripts. All numbers are heuristic bounds from a single-user corpus and should be
+read as a feasibility signal, not a population estimate.
+</div>
+
+<h2>1&nbsp;&nbsp;Introduction</h2>
+<p>
+Every mainstream LLM agent interface — chat apps, coding agents, agent SDKs — represents a
+conversation as a linear, append-only message list. Everything the user and agent have said,
+and every tool result, accumulates in one shared context window until a compaction step
+summarizes it away. The recently proposed Conversation Tree Architecture (CTA) names the
+resulting failure mode <i>logical context poisoning</i>: topically distinct threads bleed into
+one another and progressively degrade response quality&nbsp;[1]. CTA formalizes conversations as
+trees whose nodes hold isolated local contexts, but its prototype is fully manual, and its
+authors list as open problems (a)&nbsp;deciding automatically where an incoming message belongs
+and (b)&nbsp;selectively condensing a finished branch back into its parent. Meanwhile Claude
+Code shipped <code>/branch</code> — manual copy-and-diverge session forking with tree-grouped
+session navigation&nbsp;[5] — confirming product demand for tree structure, but with no automatic
+placement and no merge-back.
+</p>
+<p>
+Missing from both the research and the products is a basic empirical question:
+<i>how much tree structure is actually hiding inside real linear sessions?</i> If real sessions
+are essentially linear, routers and trees are machinery without a workload. If they interleave
+heavily, then linear history is the wrong data structure for agents, and every session silently
+pays a context-poisoning tax. This note answers that question on real usage data, and reports a
+second measurement — a negative result on a related idea — for calibration.
+</p>
+<p>Contributions:</p>
+<ul>
+<li><b>An intent breakdown of real coding-agent context</b> (§4): by stored tokens, 84.3% of
+context is action exchanges (edits, commands, and their tool outputs); pure-comprehension
+explanation turns are 2.3%. A pre-registered go/no-go gate (&ge;20% proceed, &lt;10% stop) kills
+intent-based <i>eviction</i> of explanation turns as a mechanism. We report this negative result
+in full.</li>
+<li><b>The braid measurement</b> (§5): 93% of substantive sessions interleave topically
+distinct threads (robust across segmentation thresholds), and 23–44% of the prior context each
+prompt carries belongs to other threads (&ldquo;crossload&rdquo;) — an upper bound on what
+ancestor-path-only context with merge-back condensation could save.</li>
+<li><b>A proposal with an evaluation plan</b> (§6): an automatic thread router — classify each
+incoming prompt as <i>continuation</i>, <i>sibling</i>, or <i>return</i>; serve each thread only
+its ancestor path plus condensed conclusions of closed threads — and a replay-ablation design
+that measures whether auto-placed trees beat linear sessions on tokens <i>and</i> task quality.</li>
+</ul>
+
+<h2>2&nbsp;&nbsp;Related work</h2>
+<p>
+Existing context-reduction mechanisms prune along three axes: <b>bulk</b> (large tool outputs;
+Claude Code microcompaction, Anthropic context editing&nbsp;[6]), <b>age</b> (compaction and
+summarization of old turns), and <b>similarity</b> (retrieval-style memory: MemGPT&nbsp;[7],
+vector-store chat memory). None classifies turns by what they were <i>for</i>, and none uses
+topic membership as the unit of context isolation.
+Recent agent-efficiency papers supply the motivation: pruning stale tool-interaction units
+improved task success from 71% to 91.6% while cutting tokens 1.48M→553K&nbsp;[2], and RL-trained
+context curation achieved up to 8× token reduction with higher success&nbsp;[3] — evidence that
+irrelevant context actively <i>hurts</i>, not merely costs.
+On structure, CTA&nbsp;[1] formalizes tree-structured conversations with context-isolated nodes;
+Branchat&nbsp;[4] and canvas-style interfaces&nbsp;[8] explore tree/spatial UIs for revisitation;
+Claude Code&rsquo;s <code>/branch</code>&nbsp;[5] ships manual session forking. All placement in
+these systems is manual, condensation is absent or all-or-nothing, and none reports
+measurements of latent thread structure in real sessions. That measurement, and the automatic
+router it motivates, are this note&rsquo;s subject.
+</p>
+
+<h2>3&nbsp;&nbsp;Corpus and method</h2>
+<p>
+Claude Code stores complete session transcripts as JSONL event streams under
+<code>~/.claude/projects/</code>. Our corpus is the author&rsquo;s complete history: 2,155
+transcript files (≈687&nbsp;MB) across 38 project directories, of which ≈1,140 are subagent
+sidechains and most of the rest are short one-question sessions. Events are grouped into
+<i>exchanges</i>: one real user prompt plus all assistant activity (text, tool calls, tool
+results) until the next real prompt. Harness-generated pseudo-prompts (tool results, background
+task notifications, interruption markers) are folded into the current exchange rather than
+counted as user intent. An exchange&rsquo;s <i>stored-token</i> contribution is estimated as
+chars/4 of its persisted content — what actually occupies the window — cross-checked against
+the transcripts&rsquo; native output-token usage fields. Sessions with ≥3 substantive exchanges
+enter the intent measurement (73 sessions); sessions with ≥5 real prompts enter the thread
+measurement (67 sessions, 5,182 prompts). The corpus is one professional user&rsquo;s real work
+(software engineering and research sessions) — a deliberate first-person feasibility corpus, with
+the external-validity limits discussed in §7.
+</p>
+
+<h2>4&nbsp;&nbsp;Measurement 1 (negative result): explanation turns are too small to be worth evicting</h2>
+<p>
+Hypothesis: comprehension turns — &ldquo;explain this&rdquo;, &ldquo;why did you do that?&rdquo;,
+&ldquo;in plain English&rdquo; — are <i>regenerable</i> (the model can re-derive any explanation from
+the code and decisions that remain), hence the safest content to evict at task boundaries; if
+they are a large token share, intent-based eviction is a mechanism worth building. Exchanges
+were labeled by heuristics: any state-changing tool call → <span class="tt">ACTION</span>;
+read-only tool calls only → <span class="tt">RESEARCH</span>; no tools plus decision language →
+<span class="tt">DECISION</span>; no tools plus explain-pattern prompt or long code-free prose
+reply → <span class="tt">COMPREHENSION</span>; else <span class="tt">OTHER</span>. The gate,
+fixed before measuring: ≥20% of tokens evictable → build; &lt;10% → stop.
+</p>
+
+<table>
+<thead><tr><th>Label</th><th class="n">Stored tokens</th><th class="n">Share</th></tr></thead>
+<tbody>
+<tr><td>ACTION (edits, commands, tool outputs)</td><td class="n">16,542,043</td><td class="n">84.3%</td></tr>
+<tr><td>DECISION</td><td class="n">1,157,089</td><td class="n">5.9%</td></tr>
+<tr><td>RESEARCH (read-only tool use)</td><td class="n">874,917</td><td class="n">4.5%</td></tr>
+<tr><td>OTHER</td><td class="n">608,828</td><td class="n">3.1%</td></tr>
+<tr><td><b>COMPREHENSION (evictable candidate)</b></td><td class="n"><b>443,664</b></td><td class="n"><b>2.3%</b></td></tr>
+</tbody>
+</table>
+<div class="caption"><b>Table 1.</b> Intent breakdown of stored context across 73 sessions
+(≈19.6M estimated tokens). Per-session comprehension share: median 1.6%, maximum 17.4%; zero
+sessions reach 20%, one exceeds 10%. The heuristic over-counts comprehension (it is an upper
+bound: no retrospective reference check was applied).</div>
+
+<p>
+The gate fires decisively: even the upper bound sits far below the stop threshold. Perfect
+eviction of every explanation turn would extend session headroom by ≈2% — within measurement
+noise. The prediction that tool outputs dominate real agent context (70–90% in our
+pre-registered adversarial review) was confirmed and exceeded. We conclude that intent-based
+<i>eviction of explanation turns</i> is not a viable mechanism for professional coding
+sessions, and note that the learner/&ldquo;vibe-coder&rdquo; segment — plausibly much heavier in
+comprehension turns — cannot be assessed from this corpus. The taxonomy and the regenerability
+principle, however, survive; §5 applies them at a different granularity, where the effect is an
+order of magnitude larger.
+</p>
+
+<h2>5&nbsp;&nbsp;Measurement 2: sessions are braids</h2>
+<p>
+We next segment each session&rsquo;s real prompts into topical <i>threads</i>, using lexical
+similarity between a prompt&rsquo;s content terms (plus files touched by tools in its exchange)
+and the accumulated term/file profile of each existing thread. Each prompt is labeled
+<span class="tt">CONT</span> (continues the current thread), <span class="tt">NEW</span> (opens
+a thread — a sibling branch), or <span class="tt">RETURN</span> (resumes an earlier thread
+after working on something else). Short reactive prompts (&ldquo;ok&rdquo;, &ldquo;yes&rdquo;,
+&ldquo;continue&rdquo;) are continuations by rule. Because lexical segmentation can over-split, we
+report two operating points: the default similarity threshold (θ=0.15) and a deliberately
+generous merging threshold (θ=0.07) as a conservative floor.
+</p>
+<p>
+For each prompt we also compute <b>cross-topic context load</b> (&ldquo;crossload&rdquo;): the share
+of accumulated prior-context tokens that belong to threads <i>other than</i> the one the prompt
+is in. Under an ancestor-path-only tree with merge-back condensation, this is the content that
+would collapse to one-line conclusions — an upper bound on the addressable saving.
+</p>
+
+<table>
+<thead><tr><th>Metric</th><th class="n">Default (θ=0.15)</th><th class="n">Conservative (θ=0.07)</th></tr></thead>
+<tbody>
+<tr><td>Prompts that switch threads (NEW or RETURN)</td><td class="n">31%</td><td class="n">18%</td></tr>
+<tr><td>RETURN events (re-entry into an earlier thread)</td><td class="n">932</td><td class="n">—</td></tr>
+<tr><td>Sessions with ≥2 threads</td><td class="n">100%</td><td class="n">97%</td></tr>
+<tr><td><b>Sessions interleaved (≥1 RETURN)</b></td><td class="n"><b>93%</b></td><td class="n"><b>93%</b></td></tr>
+<tr><td>Mean threads per session</td><td class="n">11.1</td><td class="n">6.1</td></tr>
+<tr><td>Crossload, mean over prompts</td><td class="n">51.1%</td><td class="n">34.5%</td></tr>
+<tr><td><b>Crossload, token-weighted</b></td><td class="n"><b>44.1%</b></td><td class="n"><b>23.2%</b></td></tr>
+</tbody>
+</table>
+<div class="caption"><b>Table 2.</b> Latent thread structure across 67 sessions / 5,182 real
+prompts. The headline structural fact — 93% of sessions interleave — is identical at both
+thresholds, i.e. it is not an artifact of segmentation strictness. Crossload spans 23–44%
+depending on strictness: 10–20× the addressable share of Measurement 1.</div>
+
+<figure id="braidfig"></figure>
+<div class="caption"><b>Figure 1.</b> One real session as a braid (43 prompts, 12 threads,
+θ=0.15, crossload 74%). Each prompt is a dot in its thread&rsquo;s lane; the path shows session
+order. Open dots open a new thread; black dots are returns to an earlier thread. Thread T2 —
+the session&rsquo;s main experimental work — is re-entered six times, weaving through detours
+into explanation (T3), a Colab debugging excursion (T4–T6), and publication questions
+(T7–T10). A manual fork command cannot capture this pattern; users do not branch and come
+back once, they weave continuously.</div>
+
+<p>
+Qualitative inspection confirms the segmentation is meaningful rather than noise: in the
+Figure&nbsp;1 session the segmenter cleanly separates an experiment-execution thread, a
+plain-English explanation detour, an environment-debugging excursion, and a cluster of
+publication-planning questions, with correct return detection each time the user comes back to
+the experiments. The braid is real, and it is the common case — not an occasional power-user
+pattern.
+</p>
+
+<h2>6&nbsp;&nbsp;Proposal: automatic thread routing with merge-back condensation</h2>
+<p>
+The measurements motivate a specific system, targeting exactly the two components CTA leaves
+open. At each incoming prompt, a lightweight <b>router</b> (heuristics plus a small-model
+classifier) decides: <i>continuation</i> of the active thread, <i>sibling</i> (new thread
+branching from the nearest shared ancestor), or <i>return</i> to a named earlier thread. The
+context served for the prompt is its thread&rsquo;s ancestor path, plus one-line condensed
+conclusions of closed threads (decisions, constraints, and outcomes mined before condensation —
+never silently dropped). When a thread completes, a <b>merge-back condensation</b> step
+collapses it to its conclusion in the parent.
+</p>
+<p>
+Design constraints, learned from the failure modes of context pruning: (a)&nbsp;<i>misplacement
+is worse than mis-pruning</i> — a misrouted prompt hides context the model needed, so the router
+must be precision-first and fall back to full linear context when confidence is low;
+(b)&nbsp;<i>cache economics must be reported</i> — tree branching naturally reuses the ancestor
+prefix cache, and merges should be batched with existing compaction moments, but any claimed
+saving must be stated in cache-adjusted cost, not raw tokens; (c)&nbsp;decisions, corrections,
+and user preferences are never regenerable and always survive condensation.
+</p>
+<p>
+<b>Evaluation plan (replay ablation).</b> Take completed sessions with known outcomes. At
+checkpoints, construct FULL (linear) and THREADED (ancestor-path + condensed conclusions)
+context variants; replay the next real user prompts against both; judge with a panel of
+LLM judges plus manual spot review: same actions taken, same files edited, decision
+consistency. Report Δ&nbsp;task success, Δ&nbsp;tokens, Δ&nbsp;cache-adjusted cost, turns-to-compaction,
+and router accuracy against human placement labels. The interesting outcome is not the token
+saving — Table&nbsp;2 already bounds it — but the quality direction: prior results&nbsp;[2,3]
+predict that removing cross-thread clutter should make responses <i>equal or better</i>. If
+confirmed, the claim graduates from &ldquo;save tokens&rdquo; to &ldquo;linear history is the wrong
+data structure for agents, measured.&rdquo;
+</p>
+
+<h2>7&nbsp;&nbsp;Limitations</h2>
+<ul>
+<li><b>Single-user corpus.</b> All sessions are one professional user&rsquo;s; shares will differ
+across populations. The 93% interleaving rate and 23–44% crossload should be read as an
+existence proof and feasibility signal, not a population estimate.</li>
+<li><b>Heuristic segmentation.</b> Thread boundaries come from lexical overlap, not semantics;
+over-splitting inflates crossload (hence the dual-threshold bracket), and an LLM labeling pass
+on a sample is the necessary next step. The threshold-invariance of the interleaving rate is
+the strongest evidence the structure is real.</li>
+<li><b>Crossload is an upper bound on savings.</b> Some cross-thread content (global decisions,
+shared state) must survive as condensed summaries; realized savings will be lower.</li>
+<li><b>Token estimation.</b> chars/4 estimation of stored content; native usage fields were
+used only as a cross-check.</li>
+<li><b>No quality measurement yet.</b> Whether thread isolation helps or hurts response quality
+is exactly what the §6 ablation must establish; nothing here presumes its outcome.</li>
+</ul>
+
+<h2>8&nbsp;&nbsp;Conclusion</h2>
+<p>
+By intent, real coding-agent context is dominated by action and tool output; the safely
+evictable explanation layer is ≈2% — a negative result that closes one plausible mechanism. By
+topic, the same context is a braid: 93% of sessions interleave threads, and each prompt drags
+along 23–44% context that belongs to other threads. The skeleton of the fix is already
+shipping (manual session forking) and already formalized (CTA); what remains open — automatic
+placement and condensation on merge-back — is precisely what these measurements motivate, and
+the replay ablation of §6 is the experiment that decides whether tree-structured context makes
+agents merely cheaper, or actually better. Measurement scripts
+(<code>measure.py</code>, <code>measure_tree.py</code>) are released with this note.
+</p>
+
+<h2>References</h2>
+<ol class="refs">
+<li>P. Hemanth, S. Saha. <i>Conversation Tree Architecture: A Structured Framework for
+Context-Aware Multi-Branch LLM Conversations.</i> arXiv:2603.21278, March 2026.</li>
+<li><i>Less Context, Better Agents: Efficient Context Engineering for Long-Horizon Tool-Using
+LLM Agents.</i> arXiv:2606.10209, 2026.</li>
+<li><i>ActiveContext: Escaping the Context Bottleneck via RL Context Curation.</i>
+arXiv:2604.11462, 2026.</li>
+<li><i>Branchat: A Tree-Structured Interface for Efficient Revisitation in Long-Horizon LLM
+Conversations.</i> CHI 2026 Extended Abstracts, doi:10.1145/3772363.3798792.</li>
+<li>Anthropic. <i>Claude Code documentation: Manage sessions</i> (the <code>/branch</code>
+command and session-tree navigation). https://code.claude.com/docs/en/sessions, 2026.</li>
+<li>Anthropic. <i>Context editing / context management.</i>
+https://www.anthropic.com/news/context-management, 2025.</li>
+<li>C. Packer et al. <i>MemGPT: Towards LLMs as Operating Systems.</i> arXiv:2310.08560, 2023.</li>
+<li><i>Conversations in Space: Structuring Non-Linear LLM Interactions on a Canvas.</i>
+arXiv:2605.15848, 2026.</li>
+</ol>
+
+<div class="footnote">
+Measurement note, Phase 1 (feasibility). Scripts and per-session outputs accompany this note.
+Corpus: author&rsquo;s own Claude Code transcripts; no third-party data. Comments welcome.
+</div>
+
+<script>
+(function () {
+  // (threadId, kind) per prompt — real session, theta=0.15
+  const seq = [
+    [0,'N'],[1,'N'],[2,'N'],[2,'C'],[2,'C'],[3,'N'],[3,'C'],[2,'R'],[2,'C'],[2,'C'],
+    [2,'C'],[2,'C'],[2,'C'],[2,'C'],[2,'C'],[2,'C'],[2,'C'],[2,'C'],[2,'C'],[2,'C'],
+    [2,'C'],[2,'C'],[2,'C'],[1,'R'],[4,'N'],[4,'C'],[4,'C'],[4,'C'],[4,'C'],[5,'N'],
+    [2,'R'],[6,'N'],[7,'N'],[2,'R'],[2,'C'],[8,'N'],[8,'C'],[9,'N'],[2,'R'],[2,'C'],
+    [10,'N'],[2,'R'],[11,'N']
+  ];
+  const lanes = 12, x0 = 46, dx = 13.6, y0 = 24, dy = 20;
+  const W = x0 + (seq.length - 1) * dx + 24, H = y0 + (lanes - 1) * dy + 46;
+  const px = i => x0 + i * dx, py = t => y0 + t * dy;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:640px" font-family="Georgia,serif">`;
+  for (let t = 0; t < lanes; t++) {
+    s += `<line x1="${x0-8}" y1="${py(t)}" x2="${px(seq.length-1)+8}" y2="${py(t)}" stroke="#e2e2e2" stroke-width="1"/>`;
+    s += `<text x="${x0-14}" y="${py(t)+3}" font-size="9" fill="#666" text-anchor="end">T${t}</text>`;
+  }
+  let d = `M ${px(0)} ${py(seq[0][0])}`;
+  for (let i = 1; i < seq.length; i++) d += ` L ${px(i)} ${py(seq[i][0])}`;
+  s += `<path d="${d}" fill="none" stroke="#9a9a9a" stroke-width="1.1"/>`;
+  seq.forEach(([t, k], i) => {
+    const cx = px(i), cy = py(t);
+    if (k === 'C')      s += `<circle cx="${cx}" cy="${cy}" r="2.4" fill="#8a8a8a"/>`;
+    else if (k === 'N') s += `<circle cx="${cx}" cy="${cy}" r="3.6" fill="#fff" stroke="#111" stroke-width="1.4"/>`;
+    else                s += `<circle cx="${cx}" cy="${cy}" r="3.8" fill="#111" stroke="#fff" stroke-width="1.2"/>`;
+  });
+  const ly = y0 + (lanes - 1) * dy + 30;
+  s += `<circle cx="${x0}" cy="${ly}" r="3.6" fill="#fff" stroke="#111" stroke-width="1.4"/><text x="${x0+8}" y="${ly+3.5}" font-size="9.5" fill="#111">new thread</text>`;
+  s += `<circle cx="${x0+90}" cy="${ly}" r="3.8" fill="#111"/><text x="${x0+98}" y="${ly+3.5}" font-size="9.5" fill="#111">return</text>`;
+  s += `<circle cx="${x0+160}" cy="${ly}" r="2.4" fill="#8a8a8a"/><text x="${x0+168}" y="${ly+3.5}" font-size="9.5" fill="#111">continuation</text>`;
+  s += `<text x="${px(seq.length-1)+8}" y="${ly+3.5}" font-size="9" fill="#666" text-anchor="end">prompts in session order →</text>`;
+  s += `</svg>`;
+  document.getElementById('braidfig').innerHTML = s;
+})();
+</script>
+</body>
+</html>
