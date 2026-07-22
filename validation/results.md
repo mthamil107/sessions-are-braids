@@ -72,6 +72,31 @@ supported at this pilot's power (n=18, one judge, excerpt-based replay harness t
 handicaps both arms). The gap is attributable mostly to condensation quality, not to
 thread isolation itself — making the condenser the demonstrated open problem.
 
+## Phase 2b — three-arm component ablation (same 18 RETURN points)
+
+Question: is the pilot's quality gap caused by thread isolation itself, or by the condenser
+losing concrete facts? Third arm: SUMMARY+ENTITIES = the summary-only context plus an
+LLM-mined entity ledger (files, commands, decisions, facts) from the other threads.
+Fresh blinded 3-way judging (arms shuffled per item, judged against the historical actual).
+
+| Arm | Size | Equivalent (same+similar) | Dependency failures | Preferred | Worst |
+|---|--:|--:|--:|--:|--:|
+| FULL (linear) | 906 KB | 10/18 | 14/18 | **9** | 6 |
+| SUMMARY-only | 453 KB (−50%) | 9/18 | 12/18 | 2 | **7** |
+| SUMMARY+ENTITIES | 514 KB (−43%) | 9/18 | **10/18** | 5 | 5 |
+
+Findings:
+- **Entity retention strictly dominates summary-only** (preferred 5 vs 2, worst 5 vs 7,
+  dependency failures 10 vs 12) at only 7pp additional context.
+- The FULL-vs-scoped preference gap narrowed from 11–5 (two-arm pilot) to 9–5 — partially,
+  not fully, closed.
+- **SUMMARY+ENTITIES shows the fewest dependency failures of all arms, fewer than FULL
+  (10 vs 14)**: a distilled entity ledger surfaces cross-thread facts that raw linear
+  context buries.
+- Judge-noise calibration: FULL's equivalence count moved 12→10 between the two independent
+  judging passes over identical answers, i.e. single-judge noise ≈ ±2 items; all pairwise
+  differences here are within or near that band except summary-only's worst-count.
+
 ## Provenance
 
 - Segmentation passes: 30 independent blind runs (3 prompt-lens variants × 10 sessions),

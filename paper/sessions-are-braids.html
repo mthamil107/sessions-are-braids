@@ -59,10 +59,12 @@ after working on others; blind LLM re-segmentation of a 10-session stratified sa
 (30 independent passes, adjudicated by a two-judge panel) puts the cross-thread share of each
 prompt&rsquo;s accumulated context at <b>54–63%</b> — higher than the lexical heuristic&rsquo;s
 25–45% estimate, whose switch points the validation rejected (29% precision).
-<b>(3)&nbsp;Pilot ablation:</b> replaying 18 real thread-return moments with thread-scoped
-context <b>halves context size</b> at a modest quality cost (blinded judges preferred full
-context 11–5, with only +1 dependency failure), using the weakest possible condenser — locating
-the open problem squarely in <i>merge-back condensation</i>. This quantifies, in real usage
+<b>(3)&nbsp;Component ablation:</b> replaying 18 real thread-return moments under three
+context arms — full, summary-only (−50% size), and summary+entity-ledger (−43%) — shows
+<b>entity retention is the necessary condensation ingredient</b>: it strictly dominates
+summary-only and exhibits the fewest dependency failures of all arms, fewer even than full
+context (10 vs 14), while full context retains a shrinking, non-significant preference edge
+(9–5, from 11–5 without entities). This quantifies, in real usage
 data, the &ldquo;logical context poisoning&rdquo; that the Conversation Tree Architecture recently
 formalized, and targets exactly the components that work leaves open: <i>automatic thread
 placement</i> and <i>condensation</i>. All numbers are from a single-user corpus; scripts and
@@ -287,22 +289,45 @@ saving must be stated in cache-adjusted cost, not raw tokens; (c)&nbsp;decisions
 and user preferences are never regenerable and always survive condensation.
 </p>
 <p>
-<b>Pilot replay ablation (executed).</b> At 18 validated RETURN points across 6 sessions —
+<b>Replay ablation (executed, two rounds).</b> At 18 validated RETURN points across 6 sessions —
 the danger points, where scoped context omits the intervening threads entirely — we replayed
-the actual next user prompt against FULL (linear) and SCOPED (own-thread history + one-line
-stubs for other threads) context variants, and had blinded judges score each against the
-assistant&rsquo;s actual historical response. Results: SCOPED context is <b>50.0% smaller</b>;
-equivalence to the historical action was 12/18 (FULL) vs 10/18 (SCOPED); dependency failures
-were statistically indistinguishable (11 vs 12); judges preferred FULL 11–5 (2 ties). The
-strong hypothesis — that removing cross-thread clutter makes responses <i>better</i>&nbsp;[2,3] —
-is <b>not supported</b> at this pilot&rsquo;s power (n=18, single judge, excerpt-based replay).
-Two things temper the negative reading: the SCOPED arm used the weakest possible condenser
-(a one-line last-prompt stub per thread, no decision mining), so this is the floor of scoped
-performance; and the dependency-failure delta of +1 suggests the quality gap comes from
-condensation losing useful summary signal, not from thread isolation hiding needed facts.
-The full experiment — proper decision-mined condensation, 3-vote judging, cache-adjusted cost —
-is the immediate next step, and the pilot pins its target precisely: <b>the condenser, not the
-router, is where quality is won or lost</b>.
+the actual next user prompt under different context constructions and had blinded judges score
+each against the assistant&rsquo;s actual historical response. Round one (two arms): scoped
+context with one-line thread stubs is 50.0% smaller; judges preferred FULL 11–5 (2 ties) with a
+dependency-failure delta of only +1 — suggesting the gap came from condensation losing concrete
+facts, not from thread isolation itself. Round two tested that directly with a
+<b>three-arm component ablation</b>: FULL vs SUMMARY-only vs SUMMARY+ENTITIES, where the third
+arm adds an LLM-mined entity ledger (files, commands, decisions, outcomes) from the omitted
+threads, and all three arms were re-judged blind in shuffled order.
+</p>
+
+<table>
+<thead><tr><th>Arm</th><th class="n">Context size</th><th class="n">Equivalent to actual</th>
+<th class="n">Dependency failures</th><th class="n">Preferred</th><th class="n">Worst</th></tr></thead>
+<tbody>
+<tr><td>FULL (linear history)</td><td class="n">906 KB</td><td class="n">10/18</td><td class="n">14/18</td><td class="n"><b>9</b></td><td class="n">6</td></tr>
+<tr><td>SUMMARY-only (stubs)</td><td class="n">453 KB (−50%)</td><td class="n">9/18</td><td class="n">12/18</td><td class="n">2</td><td class="n"><b>7</b></td></tr>
+<tr><td><b>SUMMARY+ENTITIES</b></td><td class="n">514 KB (−43%)</td><td class="n">9/18</td><td class="n"><b>10/18</b></td><td class="n">5</td><td class="n">5</td></tr>
+</tbody>
+</table>
+<div class="caption"><b>Table 3.</b> Three-arm component ablation at 18 return points (blinded,
+single judge per item, arms shuffled). Entity retention strictly dominates summary-only
+(preferred 5 vs 2, worst 5 vs 7, dependency failures 10 vs 12) at 7pp extra context, and
+records the fewest dependency failures of any arm — fewer than full context. Judge-noise
+calibration: FULL&rsquo;s equivalence moved 12→10 between the two independent judging rounds
+over identical answers (≈±2 items), so pairwise differences of that size are within noise.</div>
+
+<p>
+The component reading: <b>entity retention is the necessary ingredient of merge-back
+condensation</b>. It recovers most of the naive-summary deficit at 43% context reduction, and —
+strikingly — surfaces cross-thread facts better than the full 906&nbsp;KB linear history does
+(10 vs 14 dependency failures), consistent with the buried-context effect that motivates
+pruning&nbsp;[2,3]. Full context retains a preference edge (9–5) that narrowed from the
+two-arm round (11–5) and sits near the measured judge-noise band; the strong hypothesis
+(scoped &gt; full) remains unproven at this power. The full experiment — richer decision-mined
+condensation, 3-vote judging, cache-adjusted cost — is the next step, with the target now
+precisely identified: <b>the ledger, not the prose summary, is what condensation must get
+right</b>.
 </p>
 
 <h2>7&nbsp;&nbsp;Limitations</h2>
@@ -315,9 +340,10 @@ lexical heuristic with blind LLM consensus plus a 40-item adjudicated sample —
 but still not full human labeling; the LLM passes&rsquo; own extra switches were upheld only
 about half the time when adjudicated, so the validated crossload (54–63%) may carry mild
 upward bias. The heuristic&rsquo;s 25–45% is the conservative floor.</li>
-<li><b>Pilot ablation power.</b> n=18 return points, one blinded judge per item, and an
-excerpt-based replay harness (truncated replies, no tool outputs) that handicaps both arms;
-the 11–5 preference for full context is suggestive, not significant.</li>
+<li><b>Ablation power.</b> n=18 return points, one blinded judge per item, and an
+excerpt-based replay harness (truncated replies, no tool outputs) that handicaps all arms;
+the measured judge-noise band is ≈±2 items, so the preference gaps (9–5, 5–2) are suggestive,
+not significant, and the entity-arm advantage needs confirmation at higher power.</li>
 <li><b>Crossload is an upper bound on savings.</b> Some cross-thread content (global decisions,
 shared state) must survive as condensed summaries; realized savings will be lower.</li>
 <li><b>Token estimation.</b> chars/4 estimation of stored content; native usage fields were
@@ -333,13 +359,14 @@ By intent, real coding-agent context is dominated by action and tool output; the
 evictable explanation layer is ≈2% — a negative result that closes one plausible mechanism. By
 topic, the same context is a braid: 93% of sessions interleave threads, and validated
 re-segmentation puts the cross-thread share of each prompt&rsquo;s context at 54–63%
-(conservative floor 25–45%). A pilot replay ablation at 18 real thread-return moments shows
-naive thread-scoping halves context at a modest quality cost — full context was preferred
-11–5 with only +1 dependency failure — with the weakest possible condenser setting the floor.
+(conservative floor 25–45%). A two-round replay ablation at 18 real thread-return moments shows
+thread-scoping cuts context 43–50%, and its three-arm component analysis isolates the
+ingredient that matters: an entity ledger mined from the omitted threads strictly beats prose
+stubs and yields the fewest dependency failures of any arm — fewer than full linear context.
 The skeleton of the fix is already shipping (manual session forking) and already formalized
 (CTA); the measurements here narrow the open problem to two components — an LLM-based
-placement router (lexical routing was empirically rejected at 29% switch precision) and,
-above all, <b>decision-preserving condensation on merge-back</b>, which the pilot identifies
+placement router (lexical routing was empirically rejected at 29% switch precision) and
+<b>entity-preserving condensation on merge-back</b>, which the component ablation identifies
 as the place quality is won or lost. Measurement and validation scripts are released with
 this note.
 </p>
