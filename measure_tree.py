@@ -186,7 +186,7 @@ def cross_topic_load(exchanges, labels):
         prior_total += ex["tokens"]
     return sum(shares) / len(shares) if shares else 0.0
 
-def analyze(paths, show=False):
+def analyze(paths, show=False, dump_dir=None):
     tot = defaultdict(int)
     loads, seg_counts, n = [], [], 0
     interleaved = 0
@@ -199,6 +199,15 @@ def analyze(paths, show=False):
             continue
         n += 1
         segs, labels = segment(exchanges)
+        if dump_dir:
+            os.makedirs(dump_dir, exist_ok=True)
+            name = os.path.basename(path).replace(".jsonl", "")
+            with open(os.path.join(dump_dir, name + ".json"), "w", encoding="utf-8") as f:
+                json.dump({"session": name, "n_prompts": len(exchanges), "prompts": [
+                    {"i": i, "prompt": ex["prompt"][:300], "tokens": ex["tokens"],
+                     "thread": tid, "kind": kind}
+                    for i, (ex, (tid, kind)) in enumerate(zip(exchanges, labels))]},
+                    f, indent=1)
         kinds = [k for _, k in labels]
         load = cross_topic_load(exchanges, labels)
         loads.append((load, sum(e["tokens"] for e in exchanges)))
@@ -243,10 +252,15 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     show = "--show" in args
     args = [a for a in args if a != "--show"]
+    dump_dir = None
+    if "--dump" in args:
+        k = args.index("--dump")
+        dump_dir = args[k + 1]
+        del args[k:k + 2]
     root = os.path.expanduser(args[0]) if args else os.path.expanduser("~/.claude/projects")
     files = [root] if root.endswith(".jsonl") else glob.glob(
         os.path.join(root, "**", "*.jsonl"), recursive=True)
     if not files:
         sys.exit(f"No .jsonl transcripts found under {root}")
     print(f"Scanning {len(files)} transcript(s)...")
-    analyze(files, show=show)
+    analyze(files, show=show, dump_dir=dump_dir)
