@@ -4,7 +4,9 @@
 
 Thamilvendhan Munirathinam · July 2026
 
-📄 **Paper:** [`paper/sessions-are-braids.pdf`](paper/sessions-are-braids.pdf)
+[![DOI](https://zenodo.org/badge/1308515522.svg)](https://doi.org/10.5281/zenodo.21486184)
+
+📄 **Paper:** [`paper/sessions-are-braids.pdf`](paper/sessions-are-braids.pdf) · **Archived:** [doi:10.5281/zenodo.21486184](https://doi.org/10.5281/zenodo.21486184)
 
 ## TL;DR
 
@@ -71,6 +73,7 @@ this note is that it is a single-user corpus (see §7 of the paper).
   title  = {Sessions Are Braids: Measuring Latent Thread Structure in Real Coding-Agent Sessions},
   year   = {2026},
   month  = {July},
+  doi    = {10.5281/zenodo.21486184},
   url    = {https://github.com/mthamil107/sessions-are-braids}
 }
 ```
