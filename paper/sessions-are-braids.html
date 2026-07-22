@@ -45,24 +45,28 @@ doi:10.5281/zenodo.21486184 &nbsp;·&nbsp; https://github.com/mthamil107/session
 <div class="abstract">
 <b class="lead">Abstract.</b>
 Coding agents such as Claude Code accumulate conversation history in a single linear,
-append-only context window. We measure, on a corpus of 67 real multi-turn Claude Code
-sessions from one professional user (5,182 user prompts, ≈20&nbsp;million estimated stored-context
-tokens), what that window is actually made of — first by turn <i>intent</i>, then by latent
+append-only context window. We measure, on a corpus of real multi-turn Claude Code
+sessions from one professional user (68–70 sessions depending on measurement filter, §3;
+4,434 user prompts, ≈17&nbsp;million estimated stored-context
+tokens after de-duplicating forked-session re-logs), what that window is actually made of — first by turn <i>intent</i>, then by latent
 <i>topic structure</i>. Two findings. <b>(1)&nbsp;Negative:</b> pure-comprehension turns
 (&ldquo;explain this&rdquo;, &ldquo;why?&rdquo;) — the most safely evictable content, since the model can
 regenerate any explanation from what remains — account for only <b>2.3%</b> of stored tokens
 (median session 1.6%; heuristic upper bound). Intent-based eviction of explanation turns is
 not worth building for professional sessions. <b>(2)&nbsp;Positive:</b> sessions are braids.
-<b>93%</b> of sessions interleave topically distinct threads (6–11 threads per session on
-average, depending on segmentation strictness), returning to earlier threads after working on
-others; at each prompt, <b>23–44%</b> of the accumulated context it drags along belongs to
-<i>other</i> threads. The interleaving rate is invariant to segmentation threshold. This
-quantifies, in real usage data, the &ldquo;logical context poisoning&rdquo; that the Conversation Tree
-Architecture recently formalized, and it targets exactly the two components that work leaves
-open: <i>automatic thread placement</i> and <i>condensation on merge-back</i>. We propose an
-intent router implementing both, outline a replay-ablation evaluation, and release the
-measurement scripts. All numbers are heuristic bounds from a single-user corpus and should be
-read as a feasibility signal, not a population estimate.
+<b>93%</b> of sessions interleave topically distinct threads, returning to earlier threads
+after working on others; blind LLM re-segmentation of a 10-session stratified sample
+(30 independent passes, adjudicated by a two-judge panel) puts the cross-thread share of each
+prompt&rsquo;s accumulated context at <b>54–63%</b> — higher than the lexical heuristic&rsquo;s
+25–45% estimate, whose switch points the validation rejected (29% precision).
+<b>(3)&nbsp;Pilot ablation:</b> replaying 18 real thread-return moments with thread-scoped
+context <b>halves context size</b> at a modest quality cost (blinded judges preferred full
+context 11–5, with only +1 dependency failure), using the weakest possible condenser — locating
+the open problem squarely in <i>merge-back condensation</i>. This quantifies, in real usage
+data, the &ldquo;logical context poisoning&rdquo; that the Conversation Tree Architecture recently
+formalized, and targets exactly the components that work leaves open: <i>automatic thread
+placement</i> and <i>condensation</i>. All numbers are from a single-user corpus; scripts and
+aggregate data are released.
 </div>
 
 <h2>1&nbsp;&nbsp;Introduction</h2>
@@ -90,13 +94,13 @@ second measurement — a negative result on a related idea — for calibration.
 </p>
 <p>Contributions:</p>
 <ul>
-<li><b>An intent breakdown of real coding-agent context</b> (§4): by stored tokens, 84.3% of
+<li><b>An intent breakdown of real coding-agent context</b> (§4): by stored tokens, 83.8% of
 context is action exchanges (edits, commands, and their tool outputs); pure-comprehension
 explanation turns are 2.3%. A pre-registered go/no-go gate (&ge;20% proceed, &lt;10% stop) kills
 intent-based <i>eviction</i> of explanation turns as a mechanism. We report this negative result
 in full.</li>
 <li><b>The braid measurement</b> (§5): 93% of substantive sessions interleave topically
-distinct threads (robust across segmentation thresholds), and 23–44% of the prior context each
+distinct threads (robust across segmentation thresholds), and 25–45% of the prior context each
 prompt carries belongs to other threads (&ldquo;crossload&rdquo;) — an upper bound on what
 ancestor-path-only context with merge-back condensation could save.</li>
 <li><b>A proposal with an evaluation plan</b> (§6): an automatic thread router — classify each
@@ -127,17 +131,19 @@ router it motivates, are this note&rsquo;s subject.
 <h2>3&nbsp;&nbsp;Corpus and method</h2>
 <p>
 Claude Code stores complete session transcripts as JSONL event streams under
-<code>~/.claude/projects/</code>. Our corpus is the author&rsquo;s complete history: 2,155
-transcript files (≈687&nbsp;MB) across 38 project directories, of which ≈1,140 are subagent
+<code>~/.claude/projects/</code>. Our corpus is the author&rsquo;s complete history: ≈2,150
+transcript files (≈687&nbsp;MB; the count grows as the author keeps working) across 38 project directories, of which ≈1,140 are subagent
 sidechains and most of the rest are short one-question sessions. Events are grouped into
 <i>exchanges</i>: one real user prompt plus all assistant activity (text, tool calls, tool
 results) until the next real prompt. Harness-generated pseudo-prompts (tool results, background
 task notifications, interruption markers) are folded into the current exchange rather than
 counted as user intent. An exchange&rsquo;s <i>stored-token</i> contribution is estimated as
 chars/4 of its persisted content — what actually occupies the window — cross-checked against
-the transcripts&rsquo; native output-token usage fields. Sessions with ≥3 substantive exchanges
-enter the intent measurement (73 sessions); sessions with ≥5 real prompts enter the thread
-measurement (67 sessions, 5,182 prompts). The corpus is one professional user&rsquo;s real work
+the transcripts&rsquo; native output-token usage fields. Forked/resumed sessions re-log their
+inherited history with duplicate event uuids; all measurements de-duplicate at the event level
+(keep first occurrence). Sessions with ≥3 substantive exchanges enter the intent measurement
+(70 sessions); sessions with ≥5 real prompts enter the thread measurement
+(68 sessions, 4,434 prompts). The corpus is one professional user&rsquo;s real work
 (software engineering and research sessions) — a deliberate first-person feasibility corpus, with
 the external-validity limits discussed in §7.
 </p>
@@ -158,15 +164,15 @@ fixed before measuring: ≥20% of tokens evictable → build; &lt;10% → stop.
 <table>
 <thead><tr><th>Label</th><th class="n">Stored tokens</th><th class="n">Share</th></tr></thead>
 <tbody>
-<tr><td>ACTION (edits, commands, tool outputs)</td><td class="n">16,542,043</td><td class="n">84.3%</td></tr>
-<tr><td>DECISION</td><td class="n">1,157,089</td><td class="n">5.9%</td></tr>
-<tr><td>RESEARCH (read-only tool use)</td><td class="n">874,917</td><td class="n">4.5%</td></tr>
-<tr><td>OTHER</td><td class="n">608,828</td><td class="n">3.1%</td></tr>
-<tr><td><b>COMPREHENSION (evictable candidate)</b></td><td class="n"><b>443,664</b></td><td class="n"><b>2.3%</b></td></tr>
+<tr><td>ACTION (edits, commands, tool outputs)</td><td class="n">13,919,743</td><td class="n">83.8%</td></tr>
+<tr><td>DECISION</td><td class="n">1,001,042</td><td class="n">6.0%</td></tr>
+<tr><td>RESEARCH (read-only tool use)</td><td class="n">760,629</td><td class="n">4.6%</td></tr>
+<tr><td>OTHER</td><td class="n">552,758</td><td class="n">3.3%</td></tr>
+<tr><td><b>COMPREHENSION (evictable candidate)</b></td><td class="n"><b>382,036</b></td><td class="n"><b>2.3%</b></td></tr>
 </tbody>
 </table>
-<div class="caption"><b>Table 1.</b> Intent breakdown of stored context across 73 sessions
-(≈19.6M estimated tokens). Per-session comprehension share: median 1.6%, maximum 17.4%; zero
+<div class="caption"><b>Table 1.</b> Intent breakdown of stored context across 70 sessions
+(≈16.6M estimated tokens, uuid-deduped). Per-session comprehension share: median 1.6%, maximum 17.4%; zero
 sessions reach 20%, one exceeds 10%. The heuristic over-counts comprehension (it is an upper
 bound: no retrospective reference check was applied).</div>
 
@@ -204,25 +210,26 @@ would collapse to one-line conclusions — an upper bound on the addressable sav
 <table>
 <thead><tr><th>Metric</th><th class="n">Default (θ=0.15)</th><th class="n">Conservative (θ=0.07)</th></tr></thead>
 <tbody>
-<tr><td>Prompts that switch threads (NEW or RETURN)</td><td class="n">31%</td><td class="n">18%</td></tr>
-<tr><td>RETURN events (re-entry into an earlier thread)</td><td class="n">932</td><td class="n">—</td></tr>
+<tr><td>Prompts that switch threads (NEW or RETURN)</td><td class="n">32%</td><td class="n">19%</td></tr>
+<tr><td>RETURN events (re-entry into an earlier thread)</td><td class="n">738</td><td class="n">—</td></tr>
 <tr><td>Sessions with ≥2 threads</td><td class="n">100%</td><td class="n">97%</td></tr>
-<tr><td><b>Sessions interleaved (≥1 RETURN)</b></td><td class="n"><b>93%</b></td><td class="n"><b>93%</b></td></tr>
-<tr><td>Mean threads per session</td><td class="n">11.1</td><td class="n">6.1</td></tr>
-<tr><td>Crossload, mean over prompts</td><td class="n">51.1%</td><td class="n">34.5%</td></tr>
-<tr><td><b>Crossload, token-weighted</b></td><td class="n"><b>44.1%</b></td><td class="n"><b>23.2%</b></td></tr>
+<tr><td><b>Sessions interleaved (≥1 RETURN)</b></td><td class="n"><b>93%</b></td><td class="n"><b>91%</b></td></tr>
+<tr><td>Mean threads per session</td><td class="n">11.0</td><td class="n">6.0</td></tr>
+<tr><td>Crossload, mean over prompts</td><td class="n">51.3%</td><td class="n">34.5%</td></tr>
+<tr><td><b>Crossload, token-weighted</b></td><td class="n"><b>44.9%</b></td><td class="n"><b>24.7%</b></td></tr>
 </tbody>
 </table>
-<div class="caption"><b>Table 2.</b> Latent thread structure across 67 sessions / 5,182 real
-prompts. The headline structural fact — 93% of sessions interleave — is identical at both
-thresholds, i.e. it is not an artifact of segmentation strictness. Crossload spans 23–44%
-depending on strictness: 10–20× the addressable share of Measurement 1.</div>
+<div class="caption"><b>Table 2.</b> Latent thread structure across 68 sessions / 4,434 real
+prompts (uuid-deduped). The headline structural fact — 93% vs 91% of sessions interleave — is
+essentially invariant to segmentation strictness, i.e. not an artifact of the threshold.
+Heuristic crossload spans 25–45% depending on strictness: 10–20× the addressable share of
+Measurement 1 (and itself an underestimate — see §5.1).</div>
 
 <figure id="braidfig"></figure>
 <div class="caption"><b>Figure 1.</b> One real session as a braid (43 prompts, 12 threads,
 θ=0.15, crossload 74%). Each prompt is a dot in its thread&rsquo;s lane; the path shows session
 order. Open dots open a new thread; black dots are returns to an earlier thread. Thread T2 —
-the session&rsquo;s main experimental work — is re-entered six times, weaving through detours
+the session&rsquo;s main experimental work — is re-entered five times, weaving through detours
 into explanation (T3), a Colab debugging excursion (T4–T6), and publication questions
 (T7–T10). A manual fork command cannot capture this pattern; users do not branch and come
 back once, they weave continuously.</div>
@@ -234,6 +241,29 @@ plain-English explanation detour, an environment-debugging excursion, and a clus
 publication-planning questions, with correct return detection each time the user comes back to
 the experiments. The braid is real, and it is the common case — not an occasional power-user
 pattern.
+</p>
+
+<h3>5.1&nbsp;&nbsp;Validation: blind LLM re-segmentation and adjudication</h3>
+<p>
+Because lexical segmentation is the weakest link, we validated it on a stratified 10-session
+sample (5–337 prompts per session): 30 independent blind segmentation passes (three distinct
+prompting lenses × 10 sessions, small-model labelers that never saw the heuristic&rsquo;s labels),
+2-of-3 consensus on switch points, and a two-judge adjudication panel over 40 sampled
+disagreements (85% inter-judge agreement). Three corrections emerged. First, <b>the heuristic&rsquo;s
+switch points are largely wrong</b>: 29% precision / 39% recall against LLM consensus, and on
+adjudicated disagreements the panel sided with the LLM 30–4 (6 unclear); of 26 heuristic-claimed
+switches the consensus rejected, none survived. An embedding/lexical router (the cheap first
+rung of the implementation ladder) is therefore not viable — routing requires a small LLM.
+Second, <b>the braid is larger than the heuristic claimed</b>: on the validated segmentations,
+crossload is <b>57% mean / 63% token-weighted</b> (54% excluding one low-agreement session);
+the heuristic&rsquo;s 25–45% stands as the conservative floor. Third, a corpus artifact was found
+and fixed: forked/resumed sessions re-log inherited history (duplicate event uuids); after
+event-level dedupe the aggregate Phase&nbsp;1 numbers moved by at most 1.5 percentage points,
+confirming the structure is not a logging artifact. Under the stricter all-three-passes
+criterion, interleaving held in 7 of the 10 sample sessions — every session with ≥18 prompts
+except one. The validation also measured a true
+<b>cross-dependency rate of ≈5%</b> of prompts (prompts in one thread needing another
+thread&rsquo;s content) — the share of context that condensation must preserve.
 </p>
 
 <h2>6&nbsp;&nbsp;Proposal: automatic thread routing with merge-back condensation</h2>
@@ -257,46 +287,61 @@ saving must be stated in cache-adjusted cost, not raw tokens; (c)&nbsp;decisions
 and user preferences are never regenerable and always survive condensation.
 </p>
 <p>
-<b>Evaluation plan (replay ablation).</b> Take completed sessions with known outcomes. At
-checkpoints, construct FULL (linear) and THREADED (ancestor-path + condensed conclusions)
-context variants; replay the next real user prompts against both; judge with a panel of
-LLM judges plus manual spot review: same actions taken, same files edited, decision
-consistency. Report Δ&nbsp;task success, Δ&nbsp;tokens, Δ&nbsp;cache-adjusted cost, turns-to-compaction,
-and router accuracy against human placement labels. The interesting outcome is not the token
-saving — Table&nbsp;2 already bounds it — but the quality direction: prior results&nbsp;[2,3]
-predict that removing cross-thread clutter should make responses <i>equal or better</i>. If
-confirmed, the claim graduates from &ldquo;save tokens&rdquo; to &ldquo;linear history is the wrong
-data structure for agents, measured.&rdquo;
+<b>Pilot replay ablation (executed).</b> At 18 validated RETURN points across 6 sessions —
+the danger points, where scoped context omits the intervening threads entirely — we replayed
+the actual next user prompt against FULL (linear) and SCOPED (own-thread history + one-line
+stubs for other threads) context variants, and had blinded judges score each against the
+assistant&rsquo;s actual historical response. Results: SCOPED context is <b>50.0% smaller</b>;
+equivalence to the historical action was 12/18 (FULL) vs 10/18 (SCOPED); dependency failures
+were statistically indistinguishable (11 vs 12); judges preferred FULL 11–5 (2 ties). The
+strong hypothesis — that removing cross-thread clutter makes responses <i>better</i>&nbsp;[2,3] —
+is <b>not supported</b> at this pilot&rsquo;s power (n=18, single judge, excerpt-based replay).
+Two things temper the negative reading: the SCOPED arm used the weakest possible condenser
+(a one-line last-prompt stub per thread, no decision mining), so this is the floor of scoped
+performance; and the dependency-failure delta of +1 suggests the quality gap comes from
+condensation losing useful summary signal, not from thread isolation hiding needed facts.
+The full experiment — proper decision-mined condensation, 3-vote judging, cache-adjusted cost —
+is the immediate next step, and the pilot pins its target precisely: <b>the condenser, not the
+router, is where quality is won or lost</b>.
 </p>
 
 <h2>7&nbsp;&nbsp;Limitations</h2>
 <ul>
 <li><b>Single-user corpus.</b> All sessions are one professional user&rsquo;s; shares will differ
-across populations. The 93% interleaving rate and 23–44% crossload should be read as an
+across populations. The 93% interleaving rate and 25–45% crossload should be read as an
 existence proof and feasibility signal, not a population estimate.</li>
-<li><b>Heuristic segmentation.</b> Thread boundaries come from lexical overlap, not semantics;
-over-splitting inflates crossload (hence the dual-threshold bracket), and an LLM labeling pass
-on a sample is the necessary next step. The threshold-invariance of the interleaving rate is
-the strongest evidence the structure is real.</li>
+<li><b>Segmentation ground truth is itself model-derived.</b> The §5.1 validation replaces the
+lexical heuristic with blind LLM consensus plus a 40-item adjudicated sample — much stronger,
+but still not full human labeling; the LLM passes&rsquo; own extra switches were upheld only
+about half the time when adjudicated, so the validated crossload (54–63%) may carry mild
+upward bias. The heuristic&rsquo;s 25–45% is the conservative floor.</li>
+<li><b>Pilot ablation power.</b> n=18 return points, one blinded judge per item, and an
+excerpt-based replay harness (truncated replies, no tool outputs) that handicaps both arms;
+the 11–5 preference for full context is suggestive, not significant.</li>
 <li><b>Crossload is an upper bound on savings.</b> Some cross-thread content (global decisions,
 shared state) must survive as condensed summaries; realized savings will be lower.</li>
 <li><b>Token estimation.</b> chars/4 estimation of stored content; native usage fields were
 used only as a cross-check.</li>
-<li><b>No quality measurement yet.</b> Whether thread isolation helps or hurts response quality
-is exactly what the §6 ablation must establish; nothing here presumes its outcome.</li>
+<li><b>Quality evidence is pilot-grade only.</b> The §6 ablation is a floor-setting pilot, not the
+full experiment; whether well-condensed thread isolation matches or beats linear context
+remains open, and nothing here presumes that outcome.</li>
 </ul>
 
 <h2>8&nbsp;&nbsp;Conclusion</h2>
 <p>
 By intent, real coding-agent context is dominated by action and tool output; the safely
 evictable explanation layer is ≈2% — a negative result that closes one plausible mechanism. By
-topic, the same context is a braid: 93% of sessions interleave threads, and each prompt drags
-along 23–44% context that belongs to other threads. The skeleton of the fix is already
-shipping (manual session forking) and already formalized (CTA); what remains open — automatic
-placement and condensation on merge-back — is precisely what these measurements motivate, and
-the replay ablation of §6 is the experiment that decides whether tree-structured context makes
-agents merely cheaper, or actually better. Measurement scripts
-(<code>measure.py</code>, <code>measure_tree.py</code>) are released with this note.
+topic, the same context is a braid: 93% of sessions interleave threads, and validated
+re-segmentation puts the cross-thread share of each prompt&rsquo;s context at 54–63%
+(conservative floor 25–45%). A pilot replay ablation at 18 real thread-return moments shows
+naive thread-scoping halves context at a modest quality cost — full context was preferred
+11–5 with only +1 dependency failure — with the weakest possible condenser setting the floor.
+The skeleton of the fix is already shipping (manual session forking) and already formalized
+(CTA); the measurements here narrow the open problem to two components — an LLM-based
+placement router (lexical routing was empirically rejected at 29% switch precision) and,
+above all, <b>decision-preserving condensation on merge-back</b>, which the pilot identifies
+as the place quality is won or lost. Measurement and validation scripts are released with
+this note.
 </p>
 
 <h2>References</h2>

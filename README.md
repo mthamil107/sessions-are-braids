@@ -11,9 +11,9 @@ Thamilvendhan Munirathinam · July 2026
 ## TL;DR
 
 Coding agents (Claude Code, etc.) store conversation history as a single linear, append-only
-context window. On a corpus of the author's own real Claude Code sessions (67 substantive
-sessions, 5,182 user prompts, ≈20M estimated stored-context tokens), this note measures what
-that window is actually made of:
+context window. On a corpus of the author's own real Claude Code sessions (68 substantive
+sessions, 4,434 user prompts, ≈17M estimated stored-context tokens after de-duplicating
+forked-session re-logs), this note measures what that window is actually made of:
 
 1. **Negative result — by intent:** pure-comprehension turns ("explain this", "why?") are only
    **2.3%** of stored tokens (median session 1.6%). Intent-based *eviction* of explanation
@@ -21,7 +21,10 @@ that window is actually made of:
    (edits, commands, tool outputs).
 2. **Positive result — by topic:** sessions are braids. **93%** of sessions interleave
    topically distinct threads (invariant to segmentation strictness), and at each prompt
-   **23–44%** of the accumulated context belongs to *other* threads ("crossload").
+   **25–45%** of the accumulated context belongs to *other* threads ("crossload") by the
+   lexical heuristic — blind-LLM validation on a 10-session sample puts the share at
+   **54–63%**. A pilot replay ablation at 18 real thread-return points halves context size
+   at a modest quality cost with the weakest possible condenser (see `validation/results.md`).
 
 This quantifies, on real usage data, the "logical context poisoning" formalized by the
 Conversation Tree Architecture ([arXiv:2603.21278](https://arxiv.org/abs/2603.21278)), and

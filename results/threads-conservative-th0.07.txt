@@ -1,4 +1,4 @@
-﻿Scanning 2153 transcript(s)...
+﻿Scanning 2188 transcript(s)...
 2dfcd1d9-9927-444d-a476-b6abb361e361.j   prompts=132 threads=16 returns=38 crossload=  69%
 1be03061-8149-488a-88d1-7480b7504bc5.j   prompts= 10 threads= 4 returns= 3 crossload=  78%
 d0550704-1700-4826-b854-3be8974427a2.j   prompts= 21 threads= 4 returns= 8 crossload=  59%
@@ -16,63 +16,64 @@ b1f9a18c-d73f-4c4f-8ba6-ce329f7c69e9.j   prompts= 59 threads= 4 returns= 6 cross
 df89da00-c518-44e7-959e-b3618ee8d83d.j   prompts= 77 threads= 6 returns= 7 crossload=  13%
 e4404350-94fa-4c59-96dd-7f7bf906e583.j   prompts= 26 threads= 2 returns= 3 crossload=  14%
 edaa5e28-fec0-406c-b6c4-d75438567977.j   prompts= 92 threads=19 returns=15 crossload=  68%
-629f80f6-4dbc-4200-9faf-a218b055ce67.j   prompts= 62 threads= 8 returns= 6 crossload=  47%
+629f80f6-4dbc-4200-9faf-a218b055ce67.j   prompts= 63 threads= 8 returns= 6 crossload=  47%
 ed4ff389-f52a-469c-be6f-dafb185c204b.j   prompts= 43 threads= 6 returns= 4 crossload=  49%
+9574ee8d-11bd-48aa-be07-9d6c1fc4c368.j   prompts= 16 threads= 2 returns= 0 crossload=  38%
 d82ab74a-9869-4e1b-8763-95954d978a79.j   prompts= 10 threads= 6 returns= 1 crossload=  84%
 b9e776e1-4d67-459f-ae63-fad7984811c0.j   prompts=  7 threads= 4 returns= 1 crossload=  70%
 91555dee-3dd6-4a30-982d-07353f376530.j   prompts= 31 threads= 2 returns= 0 crossload=   5%
 dec55f20-6a46-499d-9a0b-7eb7bd4da93b.j   prompts= 15 threads= 6 returns= 4 crossload=  72%
-50f0b60e-115f-42b6-b70b-b0a7879c44fb.j   prompts=149 threads=10 returns=39 crossload=  42%
+50f0b60e-115f-42b6-b70b-b0a7879c44fb.j   prompts=113 threads=10 returns=19 crossload=  37%
 c3e4e981-748c-4b0f-908d-3d689d1b6f25.j   prompts= 24 threads= 8 returns= 2 crossload=  53%
 d24af548-e9a6-4cf1-b216-594d3083c7c1.j   prompts= 18 threads= 6 returns= 5 crossload=  66%
 daf53e2d-962f-472a-a692-66c3a6348a93.j   prompts= 39 threads= 9 returns=15 crossload=  64%
 f8ee69a7-9689-40b3-abbf-6478d413cd49.j   prompts= 55 threads= 9 returns=14 crossload=  49%
 025f9671-c706-45ca-ac71-70ed103ba6e4.j   prompts= 86 threads= 8 returns=30 crossload=  49%
 231917dd-11ec-4922-a7cc-ede7d35cbcd3.j   prompts= 68 threads= 7 returns=20 crossload=  46%
-3cfb970c-422f-4d4a-8e3c-1d5869576177.j   prompts=191 threads= 8 returns=69 crossload=  52%
+3cfb970c-422f-4d4a-8e3c-1d5869576177.j   prompts=113 threads= 8 returns=36 crossload=  54%
 b19af0a0-59d9-45f2-96c4-33136fba4edb.j   prompts= 85 threads=15 returns=21 crossload=  68%
 d634e8af-e761-44b6-99ad-4958b9a6893b.j   prompts= 19 threads= 5 returns= 3 crossload=  39%
 3e7ac379-4559-461e-8c94-4c9a930e3242.j   prompts= 91 threads= 7 returns= 8 crossload=  18%
 43457df9-7076-41a3-9b6e-95c161a5edac.j   prompts= 47 threads= 6 returns= 7 crossload=  21%
-44f081eb-674c-4090-bb3a-308f50af4e7c.j   prompts=158 threads=12 returns=14 crossload=  22%
+44f081eb-674c-4090-bb3a-308f50af4e7c.j   prompts=160 threads=12 returns=14 crossload=  21%
 7c4a894a-857b-4351-996a-b777ff0ba7d4.j   prompts= 46 threads= 6 returns= 7 crossload=  21%
 872ab728-db9f-455d-9da6-cf26b6567c99.j   prompts=141 threads= 7 returns= 6 crossload=   8%
 891772b2-f726-4db9-aeb4-36beb1aabb28.j   prompts= 56 threads= 6 returns= 7 crossload=  19%
 eb047946-effa-4d14-9c02-7fa757f95461.j   prompts= 74 threads= 7 returns= 8 crossload=  28%
-ecb0b637-8945-4f0a-9463-9933e001dceb.j   prompts=301 threads=12 returns=35 crossload=  20%
+ecb0b637-8945-4f0a-9463-9933e001dceb.j   prompts=164 threads=12 returns=14 crossload=  20%
 05fae900-de85-4bd5-8fc8-fdbc2e0e9797.j   prompts= 98 threads= 2 returns= 1 crossload=   3%
 3ae329ac-fb49-4322-8e7a-c1374a772d6c.j   prompts= 18 threads= 3 returns= 2 crossload=  17%
 6eb42573-0d60-402b-921c-d60ac9761997.j   prompts= 90 threads= 2 returns= 1 crossload=   3%
-9331f6d2-b420-4d0e-bafa-c1780fab9d08.j   prompts= 58 threads= 3 returns= 2 crossload=   6%
+9331f6d2-b420-4d0e-bafa-c1780fab9d08.j   prompts= 59 threads= 3 returns= 2 crossload=   6%
 9f205783-adfd-406d-aa5f-fbc0893b0576.j   prompts=111 threads= 3 returns= 2 crossload=   4%
 234f3dea-4db6-42d3-be6f-54356f771e74.j   prompts= 15 threads= 2 returns= 1 crossload=   7%
 a5548add-4585-4237-a5d4-7ede60a3ba80.j   prompts= 12 threads= 1 returns= 0 crossload=   0%
 01ecd0bb-d4c5-4d36-971b-86f48edd6a60.j   prompts= 14 threads= 2 returns= 1 crossload=   9%
 0aebc07d-500a-4559-86ef-6a787a54c6ac.j   prompts= 10 threads= 1 returns= 0 crossload=   0%
-27e076d9-90d9-423a-b6da-9cc89700b38b.j   prompts=244 threads= 5 returns=10 crossload=   9%
+27e076d9-90d9-423a-b6da-9cc89700b38b.j   prompts=142 threads= 5 returns= 4 crossload=   8%
 2f73d738-d53e-46ea-8778-483de1ee7af2.j   prompts= 63 threads= 2 returns= 1 crossload=   2%
-50c998cb-3f08-4d1e-9f5f-78dbe56abf60.j   prompts=197 threads= 4 returns= 5 crossload=   2%
-5f2a7b4f-4e9c-4ef1-b705-1fbbba93c5fb.j   prompts=281 threads= 5 returns=10 crossload=   8%
+50c998cb-3f08-4d1e-9f5f-78dbe56abf60.j   prompts=124 threads= 4 returns= 3 crossload=   3%
+5f2a7b4f-4e9c-4ef1-b705-1fbbba93c5fb.j   prompts=179 threads= 5 returns= 4 crossload=   7%
 7600db57-cf8a-47cd-8e3b-eb98ff0400cf.j   prompts= 42 threads= 8 returns=10 crossload=  44%
-864ab7ab-0efd-4c34-bd50-3fb5e0492433.j   prompts=193 threads= 3 returns= 4 crossload=   2%
-8712280e-2066-4bca-9af1-8c13dd95d768.j   prompts=200 threads= 5 returns= 6 crossload=   3%
-bf4f4dce-07e4-4e00-a8e4-1d576d6aaa3f.j   prompts=119 threads= 6 returns= 7 crossload=   5%
+864ab7ab-0efd-4c34-bd50-3fb5e0492433.j   prompts=120 threads= 3 returns= 2 crossload=   2%
+8712280e-2066-4bca-9af1-8c13dd95d768.j   prompts=127 threads= 5 returns= 4 crossload=   4%
+bf4f4dce-07e4-4e00-a8e4-1d576d6aaa3f.j   prompts= 94 threads= 6 returns= 5 crossload=   6%
 dbf4a41c-2d18-4796-8758-7346cd869bf8.j   prompts= 51 threads= 5 returns= 7 crossload=  23%
 f0758978-dbec-4ccc-9684-974472f6ffd6.j   prompts= 95 threads= 2 returns= 1 crossload=   2%
-fb3c9575-5246-46ea-8c2b-c0dfa5534dcd.j   prompts=337 threads= 5 returns= 6 crossload=   2%
+fb3c9575-5246-46ea-8c2b-c0dfa5534dcd.j   prompts=264 threads= 5 returns= 4 crossload=   2%
 668eda18-375e-499d-92ce-92788a17a350.j   prompts= 10 threads= 3 returns= 1 crossload=  58%
-a139d8e7-8be2-4c33-845c-6a6a63678c33.j   prompts= 51 threads= 3 returns= 2 crossload=   6%
+a139d8e7-8be2-4c33-845c-6a6a63678c33.j   prompts= 55 threads= 3 returns= 2 crossload=   5%
 0cd7c167-b2e9-47ee-91ab-d13d90a8a2fe.j   prompts=  5 threads= 2 returns= 1 crossload=  40%
 a12409fb-73c4-4aa7-9302-164109893eb6.j   prompts=  7 threads= 5 returns= 0 crossload=  99%
 0582b5b8-5287-4be7-9bcc-d7b4cdc106f1.j   prompts= 43 threads= 8 returns=12 crossload=  65%
 fb654081-bec1-42ea-bdb9-e4d7e4866c48.j   prompts= 65 threads= 4 returns= 2 crossload=   9%
 
-=== OVERALL (67 sessions, 5182 prompts) ===
-  prompts: CONT 4182 (81%)  NEW 407  RETURN 593
-  branch events (excl. session start): 933 (18% of prompts)
-  multi-thread sessions: 65/67 (97%)   interleaved (>=1 RETURN): 62/67 (93%)
-  avg threads/session: 6.1
-  cross-topic context load: mean 34.5%  token-weighted 23.2%
+=== OVERALL (68 sessions, 4434 prompts) ===
+  prompts: CONT 3528 (80%)  NEW 409  RETURN 497
+  branch events (excl. session start): 838 (19% of prompts)
+  multi-thread sessions: 66/68 (97%)   interleaved (>=1 RETURN): 62/68 (91%)
+  avg threads/session: 6.0
+  cross-topic context load: mean 34.5%  token-weighted 24.7%
 
 Reading: crossload = share of context each prompt drags along that belongs
 to other threads (upper bound of ancestor-path-only + condensation savings).

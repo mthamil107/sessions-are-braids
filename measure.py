@@ -69,8 +69,12 @@ def est_tokens(s):
     return max(1, len(s) // 4)
 
 def load_exchanges(path):
-    """Group JSONL events into exchanges keyed by real user prompts."""
-    exchanges, cur = [], None
+    """Group JSONL events into exchanges keyed by real user prompts.
+
+    Forked/resumed sessions re-log inherited history with the same event
+    uuids; skip any event whose uuid was already seen (keep first).
+    """
+    exchanges, cur, seen = [], None, set()
     with open(path, errors="replace") as f:
         for line in f:
             line = line.strip()
@@ -80,6 +84,11 @@ def load_exchanges(path):
                 ev = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            u = ev.get("uuid")
+            if u:
+                if u in seen:
+                    continue
+                seen.add(u)
             etype = ev.get("type")
             msg = ev.get("message") or {}
             content = msg.get("content", "")

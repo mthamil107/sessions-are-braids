@@ -77,9 +77,13 @@ def walk_paths(obj, acc):
 def est_tokens(s):
     return max(1, len(s) // 4)
 
-def load_exchanges(path):
-    """Group JSONL events into exchanges keyed by real user prompts."""
-    exchanges, cur = [], None
+def load_exchanges(path, dedupe=True):
+    """Group JSONL events into exchanges keyed by real user prompts.
+
+    dedupe: forked/resumed sessions re-log inherited history with the same
+    event uuids; skip any event whose uuid was already seen (keep first).
+    """
+    exchanges, cur, seen = [], None, set()
     with open(path, errors="replace") as f:
         for line in f:
             line = line.strip()
@@ -89,13 +93,19 @@ def load_exchanges(path):
                 ev = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            u = ev.get("uuid")
+            if u:
+                if dedupe and u in seen:
+                    continue
+                seen.add(u)
             etype = ev.get("type")
             msg = ev.get("message") or {}
             content = msg.get("content", "")
-            # flatten text + collect touched files
-            text_parts, files = [], set()
+            # flatten text + collect touched files (+ pure prose and tool names)
+            text_parts, files, pure, tnames = [], set(), [], []
             if isinstance(content, str):
                 text_parts.append(content)
+                pure.append(content)
             elif isinstance(content, list):
                 for b in content:
                     if not isinstance(b, dict):
@@ -103,9 +113,11 @@ def load_exchanges(path):
                     bt = b.get("type")
                     if bt == "text":
                         text_parts.append(b.get("text", ""))
+                        pure.append(b.get("text", ""))
                     elif bt == "tool_use":
                         inp = b.get("input", {})
                         walk_paths(inp, files)
+                        tnames.append(b.get("name", "?"))
                         text_parts.append(json.dumps(inp)[:2000])
                     elif bt == "tool_result":
                         c = b.get("content", "")
@@ -124,7 +136,8 @@ def load_exchanges(path):
                     # strip system-reminder / command wrapper noise from prompt terms
                     clean = re.sub(r"<[^>]+>", " ", text)
                     cur = {"prompt": clean.strip()[:400], "terms": terms_of(clean),
-                           "files": set(), "tokens": est_tokens(text)}
+                           "files": set(), "tokens": est_tokens(text), "uuid": u,
+                           "reply": "", "tools": []}
                     continue
             if cur is None:
                 continue
@@ -132,6 +145,8 @@ def load_exchanges(path):
             cur["files"] |= files
             if etype == "assistant":
                 cur["files"] |= files
+                cur["reply"] += ("\n" + "\n".join(pure)) if pure else ""
+                cur["tools"] += tnames
     if cur:
         exchanges.append(cur)
     return exchanges
