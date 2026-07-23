@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "Sessions Are Braids: Measuring Latent Thread Structure in Real Coding-Agent Sessions"
+abstract: >-
+  A measurement note on real coding-agent sessions: what the context window is made of
+  by turn intent and by latent topic structure, evidence that sessions interleave
+  multiple threads, and a component analysis of what condensation must preserve when
+  context is scoped to a thread.
+authors:
+  - family-names: Munirathinam
+    given-names: Thamilvendhan
+    # After you create a free ORCID at https://orcid.org, add it here and on the Zenodo record:
+    # orcid: "https://orcid.org/0000-0000-0000-0000"
+type: report
+doi: "10.5281/zenodo.21486184"
+url: "https://github.com/mthamil107/sessions-are-braids"
+repository-code: "https://github.com/mthamil107/sessions-are-braids"
+license: MIT
+version: v0.4.0
+date-released: "2026-07-22"
+keywords:
+  - context management
+  - LLM agents
+  - coding agents
+  - conversation trees
+  - context pruning

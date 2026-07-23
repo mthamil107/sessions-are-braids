@@ -1,0 +1,21 @@
+{
+  "title": "Sessions Are Braids: Measuring Latent Thread Structure in Real Coding-Agent Sessions",
+  "description": "A measurement note on real coding-agent sessions: what the context window is actually made of by turn intent and by latent topic structure; evidence that 93% of sessions interleave topically distinct threads with a large cross-thread context share; and a component analysis of what condensation must preserve when context is scoped to a thread. Includes measurement scripts and aggregate results. Single-user corpus; feasibility signal, not a population estimate.",
+  "upload_type": "publication",
+  "publication_type": "report",
+  "creators": [
+    {
+      "name": "Munirathinam, Thamilvendhan"
+    }
+  ],
+  "keywords": [
+    "context management",
+    "LLM agents",
+    "coding agents",
+    "conversation trees",
+    "context pruning",
+    "context poisoning"
+  ],
+  "license": "MIT",
+  "access_right": "open"
+}
