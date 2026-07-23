@@ -9,8 +9,7 @@ abstract: >-
 authors:
   - family-names: Munirathinam
     given-names: Thamilvendhan
-    # After you create a free ORCID at https://orcid.org, add it here and on the Zenodo record:
-    # orcid: "https://orcid.org/0000-0000-0000-0000"
+    orcid: "https://orcid.org/0009-0005-5641-7424"
 type: report
 doi: "10.5281/zenodo.21486184"
 url: "https://github.com/mthamil107/sessions-are-braids"
